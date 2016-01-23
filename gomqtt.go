@@ -19,6 +19,8 @@ var (
 	serverURL              string
 	topicFiltersString     string
 	clientID               string
+	pubTopic               string
+	pubMessage             string
 	numberMessagesExpected int
 )
 
@@ -29,9 +31,23 @@ func main() {
 
 	var wg sync.WaitGroup
 	setupSubscriptions(client, &wg)
+  publishMessage(client)
 	wg.Wait()
 
 	log("done.")
+}
+
+func publishMessage(client *mqtt.Client) {
+  if pubTopic != "" {
+    token := client.Publish(pubTopic, 2, false, pubMessage)
+    token.WaitTimeout(10 * time.Second)
+    if token.Error() != nil {
+      logF("FATAL: Could not publish: %v", token.Error())
+      os.Exit(-1)
+    }
+  } else {
+    log("nothing to publish")
+  }
 }
 
 func parseArgs() {
@@ -41,6 +57,8 @@ func parseArgs() {
 	flag.StringVar(&serverURL, "url", "tcp://localhost:1883", "the server url to connect to")
 	flag.StringVar(&topicFiltersString, "sub", "", "the topic(s) to subscribe to (may be a comma separated list)")
 	flag.StringVar(&clientID, "clientid", "", "the mqtt clientid to use (optional)")
+	flag.StringVar(&pubTopic, "pub", "", "the topic to publish to (after subscriptions have been setup)")
+	flag.StringVar(&pubMessage, "msg", "", "the message to publish on the '-pub' topic")
 	flag.IntVar(&numberMessagesExpected, "msg-count", 1, "number of messages to receive before exitting")
 	flag.Parse()
 }
@@ -60,16 +78,16 @@ func connect(opts *mqtt.ClientOptions) *mqtt.Client {
 	client := mqtt.NewClient(opts)
 	token := client.Connect()
 	if token.Error() != nil {
-		logF("Could not connect: %v", token.Error())
+		logF("FATAL: Could not connect: %v", token.Error())
 		os.Exit(-1)
 	}
 	token.WaitTimeout(10 * time.Second)
 	if token.Error() != nil {
-		logF("Could not connect: %v", token.Error())
+		logF("FATAL: Could not connect: %v", token.Error())
 		os.Exit(-1)
 	}
 	if !client.IsConnected() {
-		log("Not connected after timeout!")
+		log("FATAL: Not connected after timeout!")
 		os.Exit(-1)
 	}
 	log("connected")
