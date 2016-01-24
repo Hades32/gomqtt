@@ -34,6 +34,7 @@ func main() {
   publishMessage(client)
 	wg.Wait()
 
+  client.Disconnect(1)
 	log("done.")
 }
 
