@@ -6,11 +6,11 @@ MQTT client that should be suitable for use in (bash) scripts.
     -clientid string
           the mqtt clientid to use (optional)
     -ignore-payload
-          if TRUE, will only print a summary line per message
+          if set, will only print a summary line per message
     -ignore-retained
-          if TRUE, will only consider live (non-retained) messages
+          if set, will only consider live (non-retained) messages
     -insecure
-          if TRUE, will allow TLS/SSL connections without certificate and hostname validation
+          if set, will allow TLS/SSL connections without certificate and hostname validation
     -msg string
           the message to publish on the '-pub' topic
     -msg-count int
