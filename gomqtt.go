@@ -22,6 +22,7 @@ var (
 	pubTopic               string
 	pubMessage             string
 	numberMessagesExpected int
+  qos                    byte
 )
 
 func main() {
@@ -40,7 +41,7 @@ func main() {
 
 func publishMessage(client *mqtt.Client) {
   if pubTopic != "" {
-    token := client.Publish(pubTopic, 2, false, pubMessage)
+    token := client.Publish(pubTopic, qos, false, pubMessage)
     token.WaitTimeout(10 * time.Second)
     if token.Error() != nil {
       logF("FATAL: Could not publish: %v", token.Error())
@@ -52,6 +53,7 @@ func publishMessage(client *mqtt.Client) {
 }
 
 func parseArgs() {
+  var qosInt int
 	flag.BoolVar(&ignoreRetained, "ignore-retained", false, "if TRUE, will only consider live (non-retained) messages")
 	flag.BoolVar(&insecure, "insecure", false, "if TRUE, will allow TLS/SSL connections without certificate and hostname validation")
 	flag.BoolVar(&ignorePayload, "ignore-payload", false, "if TRUE, will only print a summary line per message")
@@ -61,7 +63,9 @@ func parseArgs() {
 	flag.StringVar(&pubTopic, "pub", "", "the topic to publish to (after subscriptions have been setup)")
 	flag.StringVar(&pubMessage, "msg", "", "the message to publish on the '-pub' topic")
 	flag.IntVar(&numberMessagesExpected, "msg-count", 1, "number of messages to receive before exitting")
+	flag.IntVar(&qosInt, "qos", 0, "QoS for publishes and subscriptions")
 	flag.Parse()
+  qos = byte(qosInt)
 }
 
 func createMqttOptsFromFlags() *mqtt.ClientOptions {
@@ -102,7 +106,7 @@ func setupSubscriptions(client *mqtt.Client, wg *sync.WaitGroup) {
 
 		topicFilters := strings.Split(topicFiltersString, ",")
 		for _, filter := range topicFilters {
-			client.Subscribe(filter, 2, func(client *mqtt.Client, msg mqtt.Message) {
+			client.Subscribe(filter, qos, func(client *mqtt.Client, msg mqtt.Message) {
 				if !msg.Retained() || !ignoreRetained {
 					payload := bytes.NewBuffer(msg.Payload()).String()
 
