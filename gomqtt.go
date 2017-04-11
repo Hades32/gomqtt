@@ -10,6 +10,9 @@ import (
 	"sync"
 	"time"
 
+	"compress/gzip"
+	"io/ioutil"
+
 	mqtt "git.eclipse.org/gitroot/paho/org.eclipse.paho.mqtt.golang.git"
 )
 
@@ -25,7 +28,7 @@ var (
 	pubMessage             string
 	numberMessagesExpected int
 	qos                    byte
-  logger = log.New(os.Stderr, "", log.Ldate | log.Ltime | log.Lmicroseconds)
+	logger                 = log.New(os.Stderr, "", log.Ldate|log.Ltime|log.Lmicroseconds)
 )
 
 func main() {
@@ -57,12 +60,12 @@ func parseArgs() {
 	flag.Parse()
 	qos = byte(qosInt)
 
-  if debugEnabled {
-    mqtt.DEBUG = logger
-    mqtt.WARN = logger
-    mqtt.ERROR = logger
-    mqtt.CRITICAL = logger
-  }
+	if debugEnabled {
+		mqtt.DEBUG = logger
+		mqtt.WARN = logger
+		mqtt.ERROR = logger
+		mqtt.CRITICAL = logger
+	}
 }
 
 func createMqttOptsFromFlags() *mqtt.ClientOptions {
@@ -105,7 +108,13 @@ func setupSubscriptions(client *mqtt.Client, wg *sync.WaitGroup) {
 		for _, filter := range topicFilters {
 			client.Subscribe(filter, qos, func(client *mqtt.Client, msg mqtt.Message) {
 				if !msg.Retained() || !ignoreRetained {
-					payload := bytes.NewBuffer(msg.Payload()).String()
+					buffer := bytes.NewBuffer(msg.Payload())
+					if strings.HasSuffix(msg.Topic(), ".GZ") || strings.HasSuffix(msg.Topic(), ".gz") {
+						reader, _ := gzip.NewReader(buffer)
+						readBytes, _ := ioutil.ReadAll(reader)
+						buffer = bytes.NewBuffer(readBytes)
+					}
+					payload := buffer.String()
 
 					if ignorePayload {
 						fmt.Printf("r:%v, t:%v, s:%v\n", msg.Retained(), msg.Topic(), len(payload))
@@ -140,7 +149,7 @@ func publishMessage(client *mqtt.Client) {
 }
 
 func info(msg string) {
-  logger.Println(msg)
+	logger.Println(msg)
 }
 
 func infoF(format string, a ...interface{}) {
