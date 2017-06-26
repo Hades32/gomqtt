@@ -13,7 +13,8 @@ import (
 	"compress/gzip"
 	"io/ioutil"
 
-	mqtt "git.eclipse.org/gitroot/paho/org.eclipse.paho.mqtt.golang.git"
+
+	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
 
 var (
@@ -78,7 +79,7 @@ func createMqttOptsFromFlags() *mqtt.ClientOptions {
 	return opts
 }
 
-func connect(opts *mqtt.ClientOptions) *mqtt.Client {
+func connect(opts *mqtt.ClientOptions) mqtt.Client {
 	info("Starting mqtt client")
 	client := mqtt.NewClient(opts)
 	token := client.Connect()
@@ -99,14 +100,14 @@ func connect(opts *mqtt.ClientOptions) *mqtt.Client {
 	return client
 }
 
-func setupSubscriptions(client *mqtt.Client, wg *sync.WaitGroup) {
+func setupSubscriptions(client mqtt.Client, wg *sync.WaitGroup) {
 	if topicFiltersString != "" {
 
 		wg.Add(numberMessagesExpected)
 
 		topicFilters := strings.Split(topicFiltersString, ",")
 		for _, filter := range topicFilters {
-			client.Subscribe(filter, qos, func(client *mqtt.Client, msg mqtt.Message) {
+			client.Subscribe(filter, qos, func(client mqtt.Client, msg mqtt.Message) {
 				if !msg.Retained() || !ignoreRetained {
 					buffer := bytes.NewBuffer(msg.Payload())
 					if strings.HasSuffix(msg.Topic(), ".GZ") || strings.HasSuffix(msg.Topic(), ".gz") {
@@ -135,7 +136,7 @@ func setupSubscriptions(client *mqtt.Client, wg *sync.WaitGroup) {
 	}
 }
 
-func publishMessage(client *mqtt.Client) {
+func publishMessage(client mqtt.Client) {
 	if pubTopic != "" {
 		token := client.Publish(pubTopic, qos, false, pubMessage)
 		token.WaitTimeout(10 * time.Second)
