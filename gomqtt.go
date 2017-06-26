@@ -13,6 +13,7 @@ import (
 	"compress/gzip"
 	"io/ioutil"
 
+	"math"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
@@ -56,7 +57,7 @@ func parseArgs() {
 	flag.StringVar(&clientID, "clientid", "", "the mqtt clientid to use (optional)")
 	flag.StringVar(&pubTopic, "pub", "", "the topic to publish to (after subscriptions have been setup)")
 	flag.StringVar(&pubMessage, "msg", "", "the message to publish on the '-pub' topic")
-	flag.IntVar(&numberMessagesExpected, "msg-count", 1, "number of messages to receive before exitting")
+	flag.IntVar(&numberMessagesExpected, "msg-count", math.MaxInt32, "number of messages to receive before exitting")
 	flag.IntVar(&qosInt, "qos", 0, "QoS for publishes and subscriptions")
 	flag.Parse()
 	qos = byte(qosInt)
@@ -144,6 +145,7 @@ func publishMessage(client mqtt.Client) {
 			infoF("FATAL: Could not publish: %v", token.Error())
 			os.Exit(-1)
 		}
+		info("published message succesfully")
 	} else {
 		info("nothing to publish")
 	}
