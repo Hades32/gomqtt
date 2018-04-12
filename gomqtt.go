@@ -120,11 +120,13 @@ func setupSubscriptions(client mqtt.Client, wg *sync.WaitGroup) {
 					if strings.HasSuffix(msg.Topic(), ".GZ") || strings.HasSuffix(msg.Topic(), ".gz") {
 						reader, err := gzip.NewReader(buffer)
 						if err != nil {
-							infoF("couldn't create gzip reader: %v", err)
+							infoF("couldn't create gzip reader: %v, r:%v, t:%v, s:%v", err, msg.Retained(), msg.Topic(), len(msg.Payload()))
+							return
 						}
 						readBytes, err := ioutil.ReadAll(reader)
 						if err != nil {
-							infoF("couldn't read gzip: %v", err)
+							infoF("couldn't read gzip: %v, r:%v, t:%v, s:%v", err, msg.Retained(), msg.Topic(), len(msg.Payload()))
+							return
 						}
 						buffer = bytes.NewBuffer(readBytes)
 					}
