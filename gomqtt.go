@@ -26,6 +26,8 @@ var (
 	serverURL              string
 	topicFiltersString     string
 	clientID               string
+	username               string
+	password               string
 	pubTopic               string
 	pubMessage             string
 	numberMessagesExpected int
@@ -55,6 +57,8 @@ func parseArgs() {
 	flag.StringVar(&serverURL, "url", "tcp://localhost:1883", "the server url to connect to")
 	flag.StringVar(&topicFiltersString, "sub", "", "the topic(s) to subscribe to (may be a comma separated list)")
 	flag.StringVar(&clientID, "clientid", "", "the mqtt clientid to use (optional)")
+	flag.StringVar(&username, "username", "", "the mqtt username to use (optional)")
+	flag.StringVar(&password, "password", "", "the mqtt password to use (optional)")
 	flag.StringVar(&pubTopic, "pub", "", "the topic to publish to (after subscriptions have been setup)")
 	flag.StringVar(&pubMessage, "msg", "", "the message to publish on the '-pub' topic")
 	flag.IntVar(&numberMessagesExpected, "msg-count", math.MaxInt32, "number of messages to receive before exitting")
@@ -77,6 +81,8 @@ func createMqttOptsFromFlags() *mqtt.ClientOptions {
 	if clientID != "" {
 		opts.SetClientID(clientID)
 	}
+	opts.SetUsername(username)
+	opts.SetPassword(password)
 	return opts
 }
 
@@ -112,8 +118,14 @@ func setupSubscriptions(client mqtt.Client, wg *sync.WaitGroup) {
 				if !msg.Retained() || !ignoreRetained {
 					buffer := bytes.NewBuffer(msg.Payload())
 					if strings.HasSuffix(msg.Topic(), ".GZ") || strings.HasSuffix(msg.Topic(), ".gz") {
-						reader, _ := gzip.NewReader(buffer)
-						readBytes, _ := ioutil.ReadAll(reader)
+						reader, err := gzip.NewReader(buffer)
+						if err != nil {
+							infoF("couldn't create gzip reader: %v", err)
+						}
+						readBytes, err := ioutil.ReadAll(reader)
+						if err != nil {
+							infoF("couldn't read gzip: %v", err)
+						}
 						buffer = bytes.NewBuffer(readBytes)
 					}
 					payload := buffer.String()
